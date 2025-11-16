@@ -18,7 +18,7 @@ app = Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
 app.layout = html.Div([
-    html.H3(children='Дашборд по странам', style={'textAlign': 'center'}),
+    html.H3(children='Информация по странам', style={'textAlign': 'center'}),
     
     html.Div([
         html.H4('Выбор года'),
@@ -157,3 +157,4 @@ def update_pie_graph(selected_year):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
