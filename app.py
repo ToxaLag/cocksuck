@@ -1,13 +1,9 @@
-import os
 from dash import Dash, html, dcc, callback, Output, Input
 import plotly.express as px
 import pandas as pd
 import dash_draggable
 
-# Загрузка данных
 df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
-
-# Переименование колонок для русского языка
 df = df.rename(columns={
     'country': 'Страна',
     'continent': 'Континент',
@@ -19,7 +15,7 @@ df = df.rename(columns={
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Dash(__name__, external_stylesheets=external_stylesheets)
-server = app.server  # КРИТИЧЕСКИ ВАЖНО для Render
+server = app.server
 
 app.layout = html.Div([
     html.H3(children='Дашборд по странам', style={'textAlign': 'center'}),
@@ -49,7 +45,7 @@ app.layout = html.Div([
                         id='line-y-axis'
                     ),
                 ]),
-                dcc.Graph(id='line-graph', style={'height': 300})
+                dcc.Graph(id='line-graph', style={'height': 350})
             ], style={"height": "100%", "display": "flex", "flex-direction": "column"}),
             
             html.Div([
@@ -80,23 +76,22 @@ app.layout = html.Div([
                         ),
                     ], style={'width': '32%', 'display': 'inline-block'}),
                 ]),
-                dcc.Graph(id='bubble-graph', style={'height': 300})
+                dcc.Graph(id='bubble-graph', style={'height': 350})
             ], style={"height": "100%", "display": "flex", "flex-direction": "column"}),
             
             html.Div([
                 html.H4('Топ-15 стран по населению'),
-                dcc.Graph(id='top15-graph', style={'height': 300})
+                dcc.Graph(id='top15-graph', style={'height': 500})
             ], style={"height": "100%", "display": "flex", "flex-direction": "column"}),
             
             html.Div([
                 html.H4('Население по континентам'),
-                dcc.Graph(id='pie-graph', style={'height': 300})
+                dcc.Graph(id='pie-graph', style={'height': 350})
             ], style={"height": "100%", "display": "flex", "flex-direction": "column"})
         ]
     )
 ])
 
-# Callback функции
 @callback(
     Output('line-graph', 'figure'),
     [Input('line-dropdown-selection', 'value'),
@@ -107,6 +102,11 @@ def update_line_graph(selected_countries, y_axis):
         return px.line(title='Выберите интересующие страны')
     dff = df[df['Страна'].isin(selected_countries)]
     fig = px.line(dff, x='Год', y=y_axis, color='Страна')
+    fig.update_layout(
+        xaxis_title='Год',
+        yaxis_title=y_axis,
+        hovermode='x unified'
+    )
     return fig
 
 @callback(
@@ -119,6 +119,10 @@ def update_line_graph(selected_countries, y_axis):
 def update_bubble_graph(x_axis, y_axis, size_axis, selected_year):
     dff = df[df['Год'] == selected_year]
     fig = px.scatter(dff, x=x_axis, y=y_axis, size=size_axis, color='Континент', hover_name='Страна', size_max=60)
+    fig.update_layout(
+        xaxis_title=x_axis,
+        yaxis_title=y_axis
+    )
     return fig
 
 @callback(
@@ -128,8 +132,17 @@ def update_bubble_graph(x_axis, y_axis, size_axis, selected_year):
 def update_top15_graph(selected_year):
     dff = df[df['Год'] == selected_year]
     top15 = dff.nlargest(15, 'Население')
-    fig = px.bar(top15, x='Население', y='Страна', color='Континент', orientation='h')
-    fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+    fig = px.bar(top15, x='Страна', y='Население', color='Континент')
+    fig.update_layout(
+        xaxis={
+            'tickangle': -45,
+            'tickfont': {'size': 10},
+            'automargin': True
+        },
+        yaxis_title='Население',
+        xaxis_title='Страна',
+        margin={'b': 100}
+    )
     return fig
 
 @callback(
@@ -139,10 +152,8 @@ def update_top15_graph(selected_year):
 def update_pie_graph(selected_year):
     dff = df[df['Год'] == selected_year]
     con_population = dff.groupby('Континент')['Население'].sum().reset_index()
-    fig = px.pie(con_population, values='Население', names='Континент', hole=0.3)
+    fig = px.pie(con_population, values='Население', names='Континент')
     return fig
 
-# Запуск приложения для Render
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8050))
-    app.run_server(host='0.0.0.0', port=port, debug=False)
+    app.run_server(debug=True)
